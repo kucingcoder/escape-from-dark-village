@@ -61,55 +61,57 @@ namespace ClearSky
 
         void Run()
         {
+            Vector3 moveVelocity = Vector3.zero;
+
+            bool moveLeft = Input.GetAxisRaw("Horizontal") < 0 || isMovingLeft;
+            bool moveRight = Input.GetAxisRaw("Horizontal") > 0 || isMovingRight;
+
             if (!isKickboard)
             {
-                Vector3 moveVelocity = Vector3.zero;
                 anim.SetBool("isRun", false);
 
-
-                if (Input.GetAxisRaw("Horizontal") < 0)
+                if (moveLeft)
                 {
                     direction = -1;
                     moveVelocity = Vector3.left;
-
                     transform.localScale = new Vector3(direction, 1, 1);
+
                     if (!anim.GetBool("isJump"))
                         anim.SetBool("isRun", true);
-
                 }
-                if (Input.GetAxisRaw("Horizontal") > 0)
+
+                if (moveRight)
                 {
                     direction = 1;
                     moveVelocity = Vector3.right;
-
                     transform.localScale = new Vector3(direction, 1, 1);
+
                     if (!anim.GetBool("isJump"))
                         anim.SetBool("isRun", true);
-
                 }
+
                 transform.position += moveVelocity * movePower * Time.deltaTime;
-
             }
-            if (isKickboard)
+            else
             {
-                Vector3 moveVelocity = Vector3.zero;
-                if (Input.GetAxisRaw("Horizontal") < 0)
+                if (moveLeft)
                 {
                     direction = -1;
                     moveVelocity = Vector3.left;
-
                     transform.localScale = new Vector3(direction, 1, 1);
                 }
-                if (Input.GetAxisRaw("Horizontal") > 0)
+
+                if (moveRight)
                 {
                     direction = 1;
                     moveVelocity = Vector3.right;
-
                     transform.localScale = new Vector3(direction, 1, 1);
                 }
+
                 transform.position += moveVelocity * KickBoardMovePower * Time.deltaTime;
             }
         }
+            
         void Jump()
         {
             if ((Input.GetButtonDown("Jump") || Input.GetAxisRaw("Vertical") > 0)
@@ -168,6 +170,78 @@ namespace ClearSky
                 alive = true;
             }
         }
+
+        public void JumpButton()
+        {
+            if (!anim.GetBool("isJump"))
+            {
+                isJumping = true;
+                anim.SetBool("isJump", true);
+            }
+        }
+
+        private bool isMovingLeft = false;
+        private bool isMovingRight = false;
+
+        public void BtnLeftDown() {
+            RunLeft(true);
+        }
+
+        public void BtnLeftUp() {
+            RunLeft(false);
+        }
+
+        public void BtnRightDown() {
+            RunRight(true);
+        }
+
+        public void BtnRightUp() {
+            RunRight(false);
+        }
+
+        public void RunLeft(bool isPressed)
+        {
+            isMovingLeft = isPressed;
+
+            if (isPressed)
+            {
+                direction = -1;
+                transform.localScale = new Vector3(direction, 1, 1);
+
+                if (!anim.GetBool("isJump"))
+                    anim.SetBool("isRun", true);
+            }
+            else
+            {
+                if (!isMovingRight) // jika tidak menekan kanan juga
+                    anim.SetBool("isRun", false);
+            }
+        }
+
+        public void RunRight(bool isPressed)
+        {
+            isMovingRight = isPressed;
+
+            if (isPressed)
+            {
+                direction = 1;
+                transform.localScale = new Vector3(direction, 1, 1);
+
+                if (!anim.GetBool("isJump"))
+                    anim.SetBool("isRun", true);
+            }
+            else
+            {
+                if (!isMovingLeft) // jika tidak menekan kiri juga
+                    anim.SetBool("isRun", false);
+            }
+        }
+
+        public void AttackButton()
+        {
+            anim.SetTrigger("attack");
+        }
+
     }
 
 }
