@@ -1,137 +1,108 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace ClearSky
 {
     public class DemoCollegeStudentController : MonoBehaviour
     {
+        [Header("Movement Settings")]
         public float movePower = 10f;
-        public float KickBoardMovePower = 15f;
-        public float jumpPower = 20f; //Set Gravity Scale in Rigidbody2D Component to 5
+        public float kickBoardMovePower = 15f;
+        public float jumpPower = 20f;
 
+        [Header("References")]
         private Rigidbody2D rb;
         private Animator anim;
-        Vector3 movement;
+
+        [Header("States")]
         private int direction = 1;
-        bool isJumping = false;
+        private bool isJumping = false;
         private bool alive = true;
         private bool isKickboard = false;
+        private bool isMovingLeft = false;
+        private bool isMovingRight = false;
 
-
-        // Start is called before the first frame update
         void Start()
         {
             rb = GetComponent<Rigidbody2D>();
             anim = GetComponent<Animator>();
         }
 
-        private void Update()
+        void Update()
         {
             Restart();
-            if (alive)
-            {
-                Hurt();
-                Die();
-                Attack();
-                Jump();
-                KickBoard();
-                Run();
 
-            }
+            if (!alive) return;
+
+            HandleInputs();
         }
-        private void OnTriggerEnter2D(Collider2D other)
+
+        void HandleInputs()
+        {
+            Hurt();
+            Die();
+            Attack();
+            Jump();
+            ToggleKickBoard();
+            Run();
+        }
+
+        void OnTriggerEnter2D(Collider2D other)
         {
             anim.SetBool("isJump", false);
         }
-        void KickBoard()
-        {
-            if (Input.GetKeyDown(KeyCode.Alpha4) && isKickboard)
-            {
-                isKickboard = false;
-                anim.SetBool("isKickBoard", false);
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha4) && !isKickboard )
-            {
-                isKickboard = true;
-                anim.SetBool("isKickBoard", true);
-            }
 
+        void ToggleKickBoard()
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha4))
+            {
+                isKickboard = !isKickboard;
+                anim.SetBool("isKickBoard", isKickboard);
+            }
         }
 
         void Run()
         {
             Vector3 moveVelocity = Vector3.zero;
-
             bool moveLeft = Input.GetAxisRaw("Horizontal") < 0 || isMovingLeft;
             bool moveRight = Input.GetAxisRaw("Horizontal") > 0 || isMovingRight;
 
-            if (!isKickboard)
+            if (moveLeft)
             {
+                direction = -1;
+                moveVelocity = Vector3.left;
+            }
+            else if (moveRight)
+            {
+                direction = 1;
+                moveVelocity = Vector3.right;
+            }
+
+            transform.localScale = new Vector3(direction, 1, 1);
+
+            if (!anim.GetBool("isJump"))
+                anim.SetBool("isRun", moveLeft || moveRight);
+            else
                 anim.SetBool("isRun", false);
 
-                if (moveLeft)
-                {
-                    direction = -1;
-                    moveVelocity = Vector3.left;
-                    transform.localScale = new Vector3(direction, 1, 1);
-
-                    if (!anim.GetBool("isJump"))
-                        anim.SetBool("isRun", true);
-                }
-
-                if (moveRight)
-                {
-                    direction = 1;
-                    moveVelocity = Vector3.right;
-                    transform.localScale = new Vector3(direction, 1, 1);
-
-                    if (!anim.GetBool("isJump"))
-                        anim.SetBool("isRun", true);
-                }
-
-                transform.position += moveVelocity * movePower * Time.deltaTime;
-            }
-            else
-            {
-                if (moveLeft)
-                {
-                    direction = -1;
-                    moveVelocity = Vector3.left;
-                    transform.localScale = new Vector3(direction, 1, 1);
-                }
-
-                if (moveRight)
-                {
-                    direction = 1;
-                    moveVelocity = Vector3.right;
-                    transform.localScale = new Vector3(direction, 1, 1);
-                }
-
-                transform.position += moveVelocity * KickBoardMovePower * Time.deltaTime;
-            }
+            float speed = isKickboard ? kickBoardMovePower : movePower;
+            transform.position += moveVelocity * speed * Time.deltaTime;
         }
-            
+
         void Jump()
         {
-            if ((Input.GetButtonDown("Jump") || Input.GetAxisRaw("Vertical") > 0)
-            && !anim.GetBool("isJump"))
+            if ((Input.GetButtonDown("Jump") || Input.GetAxisRaw("Vertical") > 0) && !anim.GetBool("isJump"))
             {
                 isJumping = true;
                 anim.SetBool("isJump", true);
             }
-            if (!isJumping)
-            {
-                return;
-            }
+
+            if (!isJumping) return;
 
             rb.velocity = Vector2.zero;
-
-            Vector2 jumpVelocity = new Vector2(0, jumpPower);
-            rb.AddForce(jumpVelocity, ForceMode2D.Impulse);
-
+            rb.AddForce(new Vector2(0, jumpPower), ForceMode2D.Impulse);
             isJumping = false;
         }
+
         void Attack()
         {
             if (Input.GetKeyDown(KeyCode.Alpha1))
@@ -139,17 +110,18 @@ namespace ClearSky
                 anim.SetTrigger("attack");
             }
         }
+
         void Hurt()
         {
             if (Input.GetKeyDown(KeyCode.Alpha2))
             {
                 anim.SetTrigger("hurt");
-                if (direction == 1)
-                    rb.AddForce(new Vector2(-5f, 1f), ForceMode2D.Impulse);
-                else
-                    rb.AddForce(new Vector2(5f, 1f), ForceMode2D.Impulse);
+
+                float forceX = direction == 1 ? -5f : 5f;
+                rb.AddForce(new Vector2(forceX, 1f), ForceMode2D.Impulse);
             }
         }
+
         void Die()
         {
             if (Input.GetKeyDown(KeyCode.Alpha3))
@@ -160,6 +132,7 @@ namespace ClearSky
                 alive = false;
             }
         }
+
         void Restart()
         {
             if (Input.GetKeyDown(KeyCode.Alpha0))
@@ -171,6 +144,7 @@ namespace ClearSky
             }
         }
 
+        // Mobile UI Controls
         public void JumpButton()
         {
             if (!anim.GetBool("isJump"))
@@ -180,68 +154,28 @@ namespace ClearSky
             }
         }
 
-        private bool isMovingLeft = false;
-        private bool isMovingRight = false;
+        public void BtnLeftDown() => SetLeftMovement(true);
+        public void BtnLeftUp() => SetLeftMovement(false);
+        public void BtnRightDown() => SetRightMovement(true);
+        public void BtnRightUp() => SetRightMovement(false);
 
-        public void BtnLeftDown() {
-            RunLeft(true);
-        }
-
-        public void BtnLeftUp() {
-            RunLeft(false);
-        }
-
-        public void BtnRightDown() {
-            RunRight(true);
-        }
-
-        public void BtnRightUp() {
-            RunRight(false);
-        }
-
-        public void RunLeft(bool isPressed)
+        void SetLeftMovement(bool isPressed)
         {
             isMovingLeft = isPressed;
-
-            if (isPressed)
-            {
-                direction = -1;
-                transform.localScale = new Vector3(direction, 1, 1);
-
-                if (!anim.GetBool("isJump"))
-                    anim.SetBool("isRun", true);
-            }
-            else
-            {
-                if (!isMovingRight) // jika tidak menekan kanan juga
-                    anim.SetBool("isRun", false);
-            }
+            if (!isPressed && !isMovingRight)
+                anim.SetBool("isRun", false);
         }
 
-        public void RunRight(bool isPressed)
+        void SetRightMovement(bool isPressed)
         {
             isMovingRight = isPressed;
-
-            if (isPressed)
-            {
-                direction = 1;
-                transform.localScale = new Vector3(direction, 1, 1);
-
-                if (!anim.GetBool("isJump"))
-                    anim.SetBool("isRun", true);
-            }
-            else
-            {
-                if (!isMovingLeft) // jika tidak menekan kiri juga
-                    anim.SetBool("isRun", false);
-            }
+            if (!isPressed && !isMovingLeft)
+                anim.SetBool("isRun", false);
         }
 
         public void AttackButton()
         {
             anim.SetTrigger("attack");
         }
-
     }
-
 }
